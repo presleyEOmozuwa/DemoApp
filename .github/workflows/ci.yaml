@@ -44,6 +44,6 @@ jobs:
         run: ls -R
 
       - name: Archive site content
-        uses: actions/checkout@main
+        uses: thedoctor0/zip-release@0.7.5
         with:
           filename: web.zip
