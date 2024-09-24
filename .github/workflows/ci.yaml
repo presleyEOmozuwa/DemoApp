@@ -30,3 +30,29 @@ jobs:
         with:
           name: server-content
           path: ./
+
+  release:
+    runs-on: ubuntu-latest
+    needs: ['build-test']
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: server-content
+      
+      - name: Display structure of downloaded files
+        run: ls -R
+
+      - name: Archive site content
+        uses: thedoctor0/zip-release@0.7.5
+        with:
+          filename: web.zip
+
+      - name: Create github release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.run_number }}
+          release_name: Release ${{ github.run_number }}
+            
