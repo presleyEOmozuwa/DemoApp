@@ -42,3 +42,8 @@ jobs:
       
       - name: Display structure of downloaded files
         run: ls -R
+
+      - name: Archive site content
+        uses: actions/checkout@main
+        with:
+          filename: web.zip
