@@ -1,0 +1,64 @@
+name: Staging CI
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform-staging:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.9.1
+    
+    - name: Set up AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    
+    - name: Terraform init
+      working-directory: ./
+      run: |
+        terraform init
+        terraform validate -no-color
+
+    - name: Apply Terraform for VPC
+      working-directory: ./
+      run: terraform apply -auto-approve -target=module.vpc   
+  
+    - name: Apply Terraform for EKS
+      working-directory: ./
+      run: terraform apply -auto-approve -target=module.eks 
+ 
+    # Build and push Docker images to ECR
+    - name: Log in to Amazon ECR
+      run: aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ECR_REGISTRY }}
+
+    - name: Build & push Docker image to AWS ECR for react app
+      uses: mr-smithers-excellent/docker-build-push@v6
+      with:
+        image: react_app
+        tags: latest
+        registry: ${{ secrets.AWS_ECR_REGISTRY }}
+        dockerfile: ./docker-compose.ci.yml
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build & push Docker image to AWS ECR for node app
+      uses: mr-smithers-excellent/docker-build-push@v6
+      with:
+        image: node_app
+        tags: latest
+        registry: ${{ secrets.AWS_ECR_REGISTRY }}
+        dockerfile: ./docker-compose.ci.yml
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    - name: Apply Terraform for K8S
+      working-directory: ./
+      run: terraform apply -auto-approve -target=module.k8s 
