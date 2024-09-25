@@ -6,7 +6,6 @@
 **/.git
 # testing
 **/coverage
-data.json
 
 # production
 /build
